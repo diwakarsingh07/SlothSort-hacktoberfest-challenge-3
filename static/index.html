@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SlothSort 🦥 Slow and Steady AI File Tidier</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        sloth: {
+                            50: '#f4f7f4',
+                            100: '#e5ece5',
+                            500: '#3d7042',
+                            600: '#2f5933',
+                            700: '#234327',
+                            800: '#19301c',
+                            900: '#0e1c10',
+                            accent: '#e69f3d'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-image: 
+                linear-gradient(to bottom, rgba(15, 23, 42, 0.85), rgba(10, 15, 29, 0.93)), 
+                url('/static/bg.jpg');
+            background-position: center center;
+            background-repeat: no-repeat;
+            background-size: cover;
+            background-attachment: fixed;
+        }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: rgba(30, 41, 59, 0.6); }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+
+        /* Running Monkey Animation */
+        @keyframes monkeyRun {
+            0% { transform: translateY(0px) rotate(-3deg); }
+            25% { transform: translateY(-8px) rotate(4deg); }
+            50% { transform: translateY(0px) rotate(-3deg); }
+            75% { transform: translateY(-6px) rotate(2deg); }
+            100% { transform: translateY(0px) rotate(-3deg); }
+        }
+
+        @keyframes trackDash {
+            0% { left: 5%; }
+            48% { left: 85%; transform: scaleX(1); }
+            50% { left: 85%; transform: scaleX(-1); }
+            98% { left: 5%; transform: scaleX(-1); }
+            100% { left: 5%; transform: scaleX(1); }
+        }
+
+        @keyframes dustPuff {
+            0% { opacity: 0.8; transform: scale(0.6) translateX(0); }
+            100% { opacity: 0; transform: scale(1.5) translateX(-15px); }
+        }
+
+        @keyframes bounceItem {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-4px); }
+        }
+
+        .monkey-runner {
+            position: absolute;
+            bottom: 6px;
+            animation: trackDash 3.2s infinite ease-in-out;
+        }
+
+        .monkey-body {
+            display: inline-block;
+            animation: monkeyRun 0.4s infinite ease-in-out;
+        }
+
+        .dust-puff {
+            position: absolute;
+            bottom: 4px;
+            left: -10px;
+            animation: dustPuff 0.4s infinite ease-out;
+        }
+    </style>
+</head>
+<body class="text-slate-100 min-h-screen font-sans flex flex-col custom-scrollbar">
+
+    <!-- Top Navigation Bar -->
+    <header class="border-b border-slate-800/80 bg-slate-950/70 backdrop-blur-md sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <span class="text-3xl filter drop-shadow">🦥</span>
+                <div>
+                    <h1 class="text-lg font-bold text-white tracking-tight flex items-center gap-2">
+                        SlothSort
+                        <span class="text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                            Slow & Steady
+                        </span>
+                    </h1>
+                    <p class="text-xs text-slate-400">Open-Source AI File Tidier • Hacktoberfest 2026</p>
+                </div>
+            </div>
+
+            <!-- Provider Selector Pills & Settings -->
+            <div class="flex items-center space-x-3">
+                <div class="hidden sm:flex items-center bg-slate-900/80 backdrop-blur rounded-lg p-1 border border-slate-700/70 text-xs shadow-inner">
+                    <button id="provider-auto" onclick="setProvider('auto')" class="px-2.5 py-1 rounded-md bg-emerald-600 text-white font-medium transition shadow">
+                        Auto Cascade
+                    </button>
+                    <button id="provider-ollama" onclick="setProvider('ollama')" class="px-2.5 py-1 rounded-md text-slate-300 hover:text-white transition">
+                        Ollama (Local)
+                    </button>
+                    <button id="provider-gemini" onclick="setProvider('gemini')" class="px-2.5 py-1 rounded-md text-slate-300 hover:text-white transition">
+                        Google Cloud AI
+                    </button>
+                    <button id="provider-groq" onclick="setProvider('groq')" class="px-2.5 py-1 rounded-md text-slate-300 hover:text-white transition">
+                        Groq
+                    </button>
+                    <button id="provider-builtin" onclick="setProvider('builtin')" class="px-2.5 py-1 rounded-md text-slate-300 hover:text-white transition">
+                        Offline Fallback
+                    </button>
+                </div>
+
+                <button onclick="openSettingsModal()" class="p-2 rounded-lg bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700/80 transition shadow backdrop-blur" title="API Keys & Settings">
+                    <i class="fa-solid fa-gear"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+
+        <!-- Hero Card (Glassmorphic) -->
+        <div class="bg-gradient-to-r from-slate-950/90 via-emerald-950/60 to-slate-950/90 backdrop-blur-md border border-emerald-700/40 rounded-2xl p-6 sm:p-8 shadow-2xl relative overflow-hidden">
+            <div class="relative z-10 max-w-3xl">
+                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs font-semibold mb-3">
+                    <i class="fa-solid fa-leaf"></i> International Sloth Day Theme • Reward Your Laziness
+                </div>
+                <h2 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight mb-2">
+                    Let the sloth organize your chaotic files while you take a nap.
+                </h2>
+                <p class="text-slate-300 text-sm sm:text-base leading-relaxed">
+                    Stop manually renaming messy screenshots, receipts, invoices, code, and downloads.
+                    SlothSort inspects file contents locally using open-weight AI, extracts semantic context, and puts everything in its place.
+                </p>
+
+                <!-- Quick Action Buttons -->
+                <div class="mt-4 flex flex-wrap gap-2 text-xs">
+                    <button onclick="generateDemoAndScan()" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/25 hover:bg-amber-500/35 text-amber-300 border border-amber-500/40 rounded-lg transition font-medium shadow-sm">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i> 1-Click: Create & Test Messy Demo Folder
+                    </button>
+                    <button onclick="usePreset('downloads')" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-900/80 hover:bg-slate-800 text-slate-300 rounded-lg border border-slate-700 transition">
+                        <i class="fa-solid fa-download"></i> My Downloads
+                    </button>
+                    <button onclick="usePreset('desktop')" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-900/80 hover:bg-slate-800 text-slate-300 rounded-lg border border-slate-700 transition">
+                        <i class="fa-solid fa-desktop"></i> My Desktop
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Folder Scan Input (Glassmorphic) -->
+        <div class="bg-slate-950/85 backdrop-blur-md border border-slate-800/90 rounded-xl p-5 shadow-xl">
+            <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
+                Target Folder Path
+            </label>
+            <div class="flex flex-col sm:flex-row gap-3">
+                <div class="relative flex-1">
+                    <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-500">
+                        <i class="fa-regular fa-folder-open"></i>
+                    </span>
+                    <input id="folder-path-input" type="text" placeholder="e.g. D:\messy_files or ./demo_messy_folder"
+                        class="w-full pl-10 pr-4 py-2.5 bg-slate-900/90 border border-slate-700/80 rounded-lg text-sm text-slate-200 focus:outline-none focus:border-emerald-500 font-mono shadow-inner" />
+                </div>
+                <button id="scan-btn" onclick="startScan()" class="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-medium text-sm rounded-lg shadow-lg shadow-emerald-900/40 transition flex items-center justify-center gap-2 whitespace-nowrap">
+                    <i class="fa-solid fa-magnifying-glass"></i> Scan & Preview (Lazy Mode)
+                </button>
+            </div>
+        </div>
+
+        <!-- Running Monkey Loader Card (Slotting & Scanning Animation) -->
+        <div id="monkey-loading-card" class="hidden bg-slate-950/90 backdrop-blur-lg border border-emerald-500/40 rounded-2xl p-6 sm:p-8 shadow-2xl space-y-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <span class="text-2xl animate-bounce">🦥</span>
+                    <div>
+                        <h4 id="monkey-title" class="text-sm sm:text-base font-bold text-white">Sloth summoned the Runner Monkey!</h4>
+                        <p id="monkey-subtitle" class="text-xs text-emerald-400">The sloth stays comfy while the monkey races to slot and tidy your files...</p>
+                    </div>
+                </div>
+                <div class="text-xs font-mono text-slate-400 px-2.5 py-1 rounded bg-slate-900 border border-slate-800 flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                    <span id="monkey-speed">Slotting Active</span>
+                </div>
+            </div>
+
+            <!-- Running Track -->
+            <div class="relative h-20 bg-slate-900/80 border border-slate-800 rounded-xl overflow-hidden px-4">
+                <!-- Track Ground Line -->
+                <div class="absolute bottom-3 left-0 right-0 h-1 bg-gradient-to-r from-emerald-900 via-amber-700 to-emerald-900 border-t border-slate-700"></div>
+
+                <!-- Scattered Files on Track being slotted -->
+                <div class="absolute bottom-4 left-[15%] text-lg opacity-80" style="animation: bounceItem 1.2s infinite ease-in-out;">📄</div>
+                <div class="absolute bottom-4 left-[35%] text-lg opacity-80" style="animation: bounceItem 1.4s infinite ease-in-out 0.2s;">🧾</div>
+                <div class="absolute bottom-4 left-[55%] text-lg opacity-80" style="animation: bounceItem 1.1s infinite ease-in-out 0.4s;">🖼️</div>
+                <div class="absolute bottom-4 left-[75%] text-lg opacity-80" style="animation: bounceItem 1.3s infinite ease-in-out 0.1s;">📦</div>
+
+                <!-- Running Monkey Sprite -->
+                <div class="monkey-runner">
+                    <div class="dust-puff text-xs opacity-60">💨</div>
+                    <div class="monkey-body text-4xl filter drop-shadow-md select-none">
+                        🐒
+                    </div>
+                </div>
+            </div>
+
+            <!-- Animated Status Log -->
+            <div class="flex items-center justify-between text-xs text-slate-400 pt-1">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-spinner animate-spin text-emerald-400"></i>
+                    <span id="monkey-action-text" class="text-slate-200 font-mono">Examining text snippet and receipts...</span>
+                </div>
+                <span class="text-amber-400/90 font-medium text-[11px]"><i class="fa-solid fa-bolt"></i> Sloth conserving 100% calories</span>
+            </div>
+        </div>
+
+        <!-- Results Section -->
+        <div id="results-section" class="hidden space-y-5">
+            <!-- Stats Bar & Actions -->
+            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-slate-950/85 backdrop-blur-md border border-slate-800/90 rounded-xl p-4 shadow-xl">
+                <div class="flex items-center gap-6 text-sm">
+                    <div>
+                        <span class="text-slate-400 text-xs block">Files Found</span>
+                        <span id="stat-count" class="text-lg font-bold text-white">0</span>
+                    </div>
+                    <div class="h-8 w-px bg-slate-800"></div>
+                    <div>
+                        <span class="text-slate-400 text-xs block">Target Categories</span>
+                        <span id="stat-categories" class="text-lg font-bold text-emerald-400">0</span>
+                    </div>
+                    <div class="h-8 w-px bg-slate-800"></div>
+                    <div>
+                        <span class="text-slate-400 text-xs block">Effort Saved</span>
+                        <span class="text-lg font-bold text-amber-400">100% Lazy</span>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-3 w-full sm:w-auto">
+                    <button onclick="undoLastSort()" class="flex-1 sm:flex-none px-4 py-2 bg-slate-900/90 hover:bg-slate-800 text-slate-300 hover:text-white rounded-lg border border-slate-700 text-sm font-medium transition flex items-center justify-center gap-1.5 shadow" title="Revert last move">
+                        <i class="fa-solid fa-arrow-rotate-left"></i> Undo Last Sort
+                    </button>
+                    <button id="execute-btn" onclick="executeSort()" class="flex-1 sm:flex-none px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg shadow-lg shadow-emerald-900/40 text-sm font-semibold transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-check-double"></i> Tidy Up Now
+                    </button>
+                </div>
+            </div>
+
+            <!-- Preview Table -->
+            <div class="bg-slate-950/85 backdrop-blur-md border border-slate-800/90 rounded-xl overflow-hidden shadow-2xl">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-slate-900/80 text-slate-400 text-xs uppercase border-b border-slate-800">
+                            <tr>
+                                <th class="py-3.5 px-4 font-semibold">Original Chaotic File</th>
+                                <th class="py-3.5 px-4 font-semibold">Proposed Semantic Name</th>
+                                <th class="py-3.5 px-4 font-semibold">Category Folder</th>
+                                <th class="py-3.5 px-4 font-semibold">AI Reasoning & Confidence</th>
+                                <th class="py-3.5 px-4 font-semibold text-right">Provider</th>
+                            </tr>
+                        </thead>
+                        <tbody id="plans-table-body" class="divide-y divide-slate-800/60 text-slate-300">
+                            <!-- Populated via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-slate-800/80 bg-slate-950/70 backdrop-blur-md py-6 text-center text-xs text-slate-400 space-y-1">
+        <p>Built with ❤️ for <strong>Hacktoberfest Open-Source AI Challenge</strong> • Theme: Slow and Steady</p>
+        <p>Open weights • Local inference • 100% Privacy • No subscription bills</p>
+    </footer>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-slate-900/95 border border-slate-700/80 rounded-2xl max-w-lg w-full p-6 space-y-5 shadow-2xl backdrop-blur-md">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                <h3 class="text-base font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-sliders text-emerald-400"></i> AI Provider & API Settings
+                </h3>
+                <button onclick="closeSettingsModal()" class="text-slate-400 hover:text-white">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <div class="space-y-4 text-xs">
+                <div>
+                    <label class="block font-medium text-slate-300 mb-1">Ollama Service URL (Local)</label>
+                    <input id="cfg-ollama-url" type="text" value="http://localhost:11434" class="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-lg text-slate-200 font-mono" />
+                </div>
+                <div>
+                    <label class="block font-medium text-slate-300 mb-1">Ollama Model</label>
+                    <input id="cfg-ollama-model" type="text" value="llama3.2" placeholder="e.g. llama3.2, qwen2.5, mistral" class="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-lg text-slate-200 font-mono" />
+                </div>
+                <div class="border-t border-slate-800 pt-3">
+                    <label class="block font-medium text-slate-300 mb-1">Google Cloud AI / Gemini API Key</label>
+                    <input id="cfg-gemini-key" type="password" placeholder="AIzaSy... (Optional)" class="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-lg text-slate-200 font-mono" />
+                </div>
+                <div>
+                    <label class="block font-medium text-slate-300 mb-1">Groq API Key (Backup)</label>
+                    <input id="cfg-groq-key" type="password" placeholder="gsk_... (Optional)" class="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-lg text-slate-200 font-mono" />
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-2 pt-3 border-t border-slate-800">
+                <button onclick="closeSettingsModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-medium">Cancel</button>
+                <button onclick="saveSettings()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold shadow">Save Settings</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="fixed bottom-5 right-5 z-50 transform translate-y-20 opacity-0 transition duration-300 pointer-events-none">
+        <div id="toast-content" class="bg-emerald-600 text-white px-4 py-2.5 rounded-lg shadow-xl text-xs font-medium flex items-center gap-2">
+            <i class="fa-solid fa-circle-check"></i> <span id="toast-msg">Success</span>
+        </div>
+    </div>
+
+    <script src="/static/app.js?v=2.0"></script>
+</body>
+</html>
